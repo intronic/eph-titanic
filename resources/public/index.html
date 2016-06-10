@@ -1,15 +1,28 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">    
-    <link href="css/style.css" rel="stylesheet" type="text/css">
-  </head>
-  <body>
-    <div id="app">
-      <h2>Figwheel template</h2>
-      <p>Checkout your developer console.</p>
-    </div>
-    <script src="js/compiled/eph_titanic.js" type="text/javascript"></script>
-  </body>
+    <head>
+          <title>Programming exercise</title>
+          <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    </head>
+    <body>
+        <!-- TABLE DIMENSIONS UI -->
+        <div id="controls"">
+            <span>Rows: <input id="rows" type="text" size="5"></input></span>
+            <span>Columns: <input id="cols" type="text" size="5"></input></span>
+            <span><button id="ok">Draw Table</button></span>
+        </div>
+
+        <!-- This div will need to appear when the user has accepted the dimensions of the table -->
+        <div id="main" style="display: block; visibility: hidden; ">
+            <!-- Use this iframe to write into dynamically -->
+            <iframe style="margin: 100px;"></iframe>
+
+            <!-- This marker is used to display the current coordinates of the mouse within the iframe -->
+            <span id="coords" style="display: none;"></span>
+
+            <p>Log</p>
+            <div id="log" style="width: 500px; height: 300px; border: 1px solid blue; overflow: scroll;"></div>
+        </div>
+        <script src="js/compiled/async_tut.js" type="text/javascript"></script>
+    </body>
 </html>
