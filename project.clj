@@ -9,22 +9,22 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.8.51"]
                  [org.clojure/core.async "0.2.374"
-                  :exclusions [org.clojure/tools.reader]]]
+                  :exclusions [org.clojure/tools.reader]]
+                 [hiccups "0.3.0"]]
 
   :plugins [[lein-figwheel "0.5.3-2"]
             [lein-cljsbuild "1.1.3" :exclusions [[org.clojure/clojure]]]]
 
   :source-paths ["src"]
 
-  :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
+  :clean-targets ^{:protect false} ["resources/public/js/compiled" "target" "test-resources/private/js"]
+
+  :aliases {"cleantest" ["do" "clean," "cljsbuild" "test" "unit"]}
 
   :cljsbuild {:builds
               [{:id "dev"
-                :source-paths ["src"]
-
-                ;; If no code is to be run, set :figwheel true for continued automagical reloading
+                :source-paths ["src" "test"]
                 :figwheel {:on-jsload "eph-titanic.core/on-js-reload"}
-
                 :compiler {:main eph-titanic.core
                            :asset-path "js/compiled/out"
                            :output-to "resources/public/js/compiled/eph_titanic.js"
@@ -38,7 +38,17 @@
                 :compiler {:output-to "resources/public/js/compiled/eph_titanic.js"
                            :main eph-titanic.core
                            :optimizations :advanced
-                           :pretty-print false}}]}
+                           :pretty-print false}}
+               {:id "test"
+                :source-paths ["src" "test"]
+                :compiler {:output-to "test-resources/private/js/unit-test.js"
+                           :optimizations :whitespace
+                           :pretty-print true}}]
+
+              :test-commands {; PhantomJS tests
+                              "unit" ["phantomjs"
+                                      "phantom/test-runner.js"
+                                      "test-resources/private/unit-test.html"]}}
 
   :figwheel {;; :http-server-root "public" ;; default and assumes "resources"
              ;; :server-port 3449 ;; default

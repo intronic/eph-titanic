@@ -1,17 +1,36 @@
-(ns eph-titanic.core
-  (:require ))
+(ns ^:figwheel-load eph-titanic.core
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]])
+  (:require [eph-titanic.ui :as ui]
+            [eph-titanic.event :as event]
+            [eph-titanic.html :as html]
+            [eph-titanic.state :as state]
+            [cljs.core.async :as async]))
 
 (enable-console-print!)
 
-(println "This text is printed from src/eph-titanic/core.cljs. Go ahead and edit it and see reloading in action.")
+(def ^:const delta 10)                  ; x/y offset to pointer to show coord element
 
-;; define your app data so that it doesn't get over-written on reload
+;; global re-loadable app-state
+(defonce app-state (atom state/init-state))
 
-(defonce app-state (atom {:text "Hello world!"}))
+(defn setup
+  []
+  (let [event-chan (async/chan)]
+    (println "set up...")
+    ;; set up iframe style
+    (ui/setup-iframe-style)
+    (add-watch app-state :main-watcher (partial state/state-change! {:ui-main ui/main}))
+    (state/start-event-loop app-state event-chan)
+    (event/setup-listeners event-chan ui/alert ui/ok-button ui/rows ui/cols)))
 
+(defn teardown
+  []
+  (println "tear down...")
+  (event/remove-listeners ui/ok-button))
 
-(defn on-js-reload []
-  ;; optionally touch your app-state to force rerendering depending on
-  ;; your application
-  ;; (swap! app-state update-in [:__figwheel_counter] inc)
-)
+(defn on-js-reload
+  []
+  (teardown)
+  (setup))
+
+(setup)
