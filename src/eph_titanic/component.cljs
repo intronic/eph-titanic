@@ -7,11 +7,12 @@
   (init! [_ chan] [_ chan log-chan]
     "Initialize the control with control and log channels 'chan' and 'log-chan'.")
   (id [_] "Return a keyword ID.")
-  (elt [_] "Return the element."))
+  (elt [_] "Return the element.")
+  (show! [_] [_ [x y] html]
+    "Show the control, optionally setting [x y] coordinates and innerHTML to 'html'.")
+  (hide! [_] "Hide the control."))
 
 (defprotocol IMainIframe
-  (show! [_] "Show the 'main' element.")
-  (hide! [_] "Hide the 'main' element.")
   (create-table! [_ table-spec]
     "Create a table in the 'main iframe' with 'table-spec' map of :rows and :cols."))
 
@@ -19,3 +20,6 @@
   (table-size [_]
     "Return the table-size as map with keys :rows :cols if the size is
     valid, otherwise show a message and return nil."))
+
+(defprotocol ICoords
+  (move [_] ""))

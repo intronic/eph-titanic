@@ -1,6 +1,9 @@
 (ns eph-titanic.state
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
-  (:require [cljs.core.async :as async]))
+  (:require [cljs.core.async :as async]
+            [goog.string :as gstring]
+            goog.string.format
+            [eph-titanic.component :as com]))
 
 ;; Application State:
 ;;   The initial application state consists of a map of:
@@ -22,15 +25,33 @@
    :selected-set nil})
 
 (defn eval-tag
-  "Evaluate tag and value, possibly changing application state."
-  [app-state tag val]
+  "Evaluate tag and value, possibly changing application state or 'coord-ctl'."
+  [app-state component-map tag val]
   (case tag
-    :create-table                ; val is map of :rows and :cols
+    :create-table                      ; val is map of :rows and :cols
     (do ;; update table dimensions, redraw counter, and undo any selections
       (println tag val)
       (swap! app-state #(some-> %
                                 (merge {:selected-set nil} val)
                                 (update-in [:table-update] inc))))
+
+    :enter
+    (let [[[x y] [oX oY] [sX sY]] val   ; xy is rel to js/document
+          s (gstring/format "(%d, %d)" (+ (- x oX) sX) (+ (- y oY) sY))]
+      (println tag val :pos [x y] :msg s)
+      (com/show! (:coords-control component-map) [x y] s))
+
+    :move
+    (let [[[x y] [oX oY] [sX sY]] val
+          pos [(+ x oX) (+ y oY)]
+          s (gstring/format "(%d, %d)" (+ x sX) (+ y sY))]
+      (println tag val :pos pos :msg s)
+      (com/show! (:coords-control component-map) pos s))
+
+    :leave
+    (do
+      (println tag val)
+      (com/hide! (:coords-control component-map)))
 
     :default-ignore))
 
@@ -49,10 +70,9 @@
   "Read a [tag value] pair off 'chan', evaluate the message possibly
   updating the app-state, and loop. Event loop will terminate if chan
   is closed."
-  [app-state chan]
-  (println :start-main-event-loop)
+  [app-state component-map chan]
   (go-loop [[tag val :as msg] (async/<! chan)]
     (when msg
       #_(println :loop tag val)
-      (eval-tag app-state tag val)
+      (eval-tag app-state component-map tag val)
       (recur (async/<! chan)))))

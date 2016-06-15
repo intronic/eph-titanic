@@ -8,7 +8,9 @@
 
 (deftest listener-state
   (is (= {} event/init-state))
-  (is (= #{:table-control} (set (keys @event/listener-state)))))
+  ;; after setup there are two controls with listeners
+  (is (= {:main-control 4 :table-control 1}
+         (into {} (map (fn [[k v]] [k (count v)]) @event/listener-state)))))
 
 #_(deftest listen-test
   (let [ch (async/chan)

@@ -6,11 +6,11 @@
 
 (deftest eval-tag-test
   (let [t1 {:rows 1 :cols 2}]
-    (let [s1 (state/eval-tag (atom state/init-state) :create-table t1)]
+    (let [s1 (state/eval-tag (atom state/init-state) nil :create-table t1)]
       (is (= (merge state/init-state {:table-update 1} t1)
              s1))
       (is (= (merge s1 {:table-update 2})
-             (state/eval-tag (atom s1) :create-table t1))))))
+             (state/eval-tag (atom s1) nil :create-table t1))))))
 
 (defn ^:export run []
   (run-tests))

@@ -14,6 +14,11 @@
 ;; global re-loadable app-state
 (defonce app-state (atom state/init-state))
 
+(def components
+  (into {} (map (juxt com/id identity) [(ui/main)
+                                        (ui/table-control)
+                                        (ui/coords)])))
+
 (def watchers {app-state [:main-watcher (partial state/state-change!
                                                  {:create-table (partial com/create-table! (ui/main))})]
                event/listener-state [:listener-watcher event/watcher]})
@@ -23,12 +28,14 @@
   (let [event-chan (async/chan)]
     (println "set up...")
     ;; set up controls/add watchers/start event loop
-    (com/init! (ui/main) event-chan)
-    (com/init! (ui/table-control) event-chan)
+    (doseq [c (vals components)]
+      (com/init! c event-chan))
     (doseq [[r [k f]] watchers]
       (println :add-watchers k)
       (add-watch r k f))
-    (state/start-event-loop app-state event-chan)))
+    (state/start-event-loop app-state
+                            components
+                            event-chan)))
 
 (defn teardown
   []

@@ -47,8 +47,14 @@
   [el]
   (some->> (get-elements-by-tag el "iframe") first))
 
+(defn set-style!
+  "Set style of element to properties in 'prop-map'."
+  [el prop-map]
+  (and el (doseq [[prop val] prop-map]
+            (aset el "style" prop val))))
+
 (defn set-innerHTML!
-  "Set element visibility style to visible, if not already."
+  "Set innerHTML of element to 'html'."
   [el html]
   (and el (set! (.-innerHTML el) html)))
 
@@ -73,3 +79,26 @@
   "Install css style string 'css-str' into document 'doc'."
   [css-str doc]
   (gstyle/installStyles css-str doc))
+
+(defn set-element-shown!
+  "Shows or hides an element from the page. if 'is-shown' is true,
+  render the element in its default style, if false, disable rendering
+  of the element."
+  [el is-shown]
+  (gstyle/setElementShown el is-shown))
+
+(defn set-page-offset!
+  "Set element 'el' page offset to 'x,y'."
+  [el x y]
+  (gstyle/setPageOffset el x y))
+
+(defn get-framed-page-offset-xy
+  "Return [x y] offset of framed page to the topmost window."
+  [doc]
+  (let [off (gstyle/getFramedPageOffset doc nil)]
+    [(.-x off) (.-y off)]))
+
+(defn scroll-xy
+  "Return [x y] distance window win has already been scrolled."
+  [win]
+  [(.-scrollX win) (.-scrollY win)])
