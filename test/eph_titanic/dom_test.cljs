@@ -55,17 +55,16 @@
 
 (deftest styles-test
   ;; get/set styles under doc head element, so not to pick up other doc elt styles
-  ;; get-style - works in firefox (scope of style).
-  ;;           - does not phantomjs (gets all styles in doc and iframes)
-  (let [ifr (constantly (dom/first-iframe (dom/elt "main")))]
-    (is (= [["STYLE" "table"]]
+  ;; get/set styles under iframe head element
+  (let [ifr #(some-> "main" dom/elt dom/first-iframe)]
+    (is (= []
            (map (juxt #(.-tagName %) #(subs (.-innerHTML %) 0 5))
                 (dom/get-styles (.-head js/document)))))
     (is (= [["STYLE" "table"]]
            (map (juxt #(.-tagName %) #(subs (.-innerHTML %) 0 5))
                 (dom/get-styles (.-head (dom/iframe-doc (ifr)))))))
 
-    (is (= [["STYLE" "table"] ["STYLE" "s1"]]
+    (is (= [["STYLE" "s1"]]
            (do (dom/install-style! "s1" (.-head js/document))
                (map (juxt #(.-tagName %) #(subs (.-innerHTML %) 0 5))
                     (dom/get-styles (.-head js/document))))))

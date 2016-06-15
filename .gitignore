@@ -12,3 +12,4 @@ pom.xml
 .lein-failures
 .repl
 .nrepl-port
+test-resources/private/js/

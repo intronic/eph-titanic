@@ -6,7 +6,9 @@
   (:import [goog.events EventType KeyCodes KeyHandler]
            [goog.dom DomHelper]))
 
-;; TODO: didnt work:
+(deftest listener-state
+  (is (= {} event/init-state))
+  (is (= #{:table-control} (set (keys @event/listener-state)))))
 
 #_(deftest listen-test
   (let [ch (async/chan)

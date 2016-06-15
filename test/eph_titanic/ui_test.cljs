@@ -5,7 +5,7 @@
             [goog.dom :as gdom])
   (:import [goog.dom DomHelper]))
 
-(deftest button-rows-cols-test
+#_(deftest button-rows-cols-test
   (testing "button-rows-cols"
     (is (= "ok" (.-id (ui/ok-button))))
     (is (= nil (ui/cols)))
@@ -23,15 +23,15 @@
     (is (not (nil? (ui/iframe-win))))
     (is (= "BODY" (.-tagName (ui/iframe-body))))))
 
-(deftest coords-test
+#_(deftest coords-test
   (testing "coords"
     (is (= "coords" (.-id (ui/coords))))))
 
-(deftest log-test
+#_(deftest log-test
   (testing "log"
     (is (= "log" (.-id (ui/log))))))
 
-(deftest setup-iframe-style-test
+#_(deftest setup-iframe-style-test
   (let [ifr (some-> (ui/main) dom/first-iframe dom/iframe-doc)
         count-styles (comp count dom/get-styles)]
     ;; iframe is already set up with one style on load, js/document has none

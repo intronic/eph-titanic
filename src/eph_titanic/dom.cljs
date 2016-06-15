@@ -47,6 +47,11 @@
   [el]
   (some->> (get-elements-by-tag el "iframe") first))
 
+(defn set-innerHTML!
+  "Set element visibility style to visible, if not already."
+  [el html]
+  (and el (set! (.-innerHTML el) html)))
+
 (defn set-visible!
   "Set element visibility style to visible, if not already."
   [el]

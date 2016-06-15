@@ -1,10 +1,6 @@
 (ns eph-titanic.state
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
-  (:require [eph-titanic.dom :as dom]
-            [eph-titanic.html :as html]
-            [eph-titanic.ui :as ui]
-            [cljs.core.async :as async])
-  (:import [goog.dom DomHelper]))
+  (:require [cljs.core.async :as async]))
 
 ;; Application State:
 ;;   The initial application state consists of a map of:
@@ -26,6 +22,7 @@
    :selected-set nil})
 
 (defn eval-tag
+  "Evaluate tag and value, possibly changing application state."
   [app-state tag val]
   (case tag
     :create-table                ; val is map of :rows and :cols
@@ -38,26 +35,24 @@
     :default-ignore))
 
 (defn state-change!
-  "Handle changing application state. "
-  [{:keys [ui-main create-table]} _ _ old new]
+  "Handle changing application state. 'create-table' is the function
+  to apply to new table dimensions when they change are to be
+  re-drawn. 'old' and 'new' are old and new states respectively."
+  [{:keys [create-table]} _ _ old new]
   ;; if rows/cols or has changed, redo the table
-  (println :sc :main ui-main)
-  (if-let [iframe-doc (some-> (ui-main) dom/first-iframe dom/iframe-doc)]
-    (do (println :sc :doc iframe-doc)
-        (if (not= (select-keys old [:rows :cols :table-update])
-                  (select-keys new [:rows :cols :table-update]))
-          (do                               ; table updated, reset things
-            (println :create-table (select-keys new [:rows :cols :table-update]))
-            #_(logger :reset)
-            (set! (.. iframe-doc -body -innerHTML)
-                  (html/table (:rows new) (:cols new)))
-            (dom/set-visible! (ui-main)))))))
+  (let [table (select-keys new [:rows :cols :table-update])]
+    (if (not= table (select-keys old [:rows :cols :table-update]))
+      (do #_(println :state :create-table table)
+          (create-table table)))))
 
 (defn start-event-loop
+  "Read a [tag value] pair off 'chan', evaluate the message possibly
+  updating the app-state, and loop. Event loop will terminate if chan
+  is closed."
   [app-state chan]
   (println :start-main-event-loop)
   (go-loop [[tag val :as msg] (async/<! chan)]
     (when msg
-      (println :loop tag val)
+      #_(println :loop tag val)
       (eval-tag app-state tag val)
       (recur (async/<! chan)))))

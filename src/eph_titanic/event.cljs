@@ -1,42 +1,49 @@
 (ns eph-titanic.event
   (:require [goog.events :as gevents]
+            [clojure.set :as set]
             [cljs.core.async :as async])
   (:import [goog.events EventType KeyCodes KeyHandler]
            [goog.dom DomHelper]))
 
-(def ^:const max-cells 100000)
+(def ^:const ^:private init-state {})
 
-(defn listen
-  "Attach a listener to el for events of 'type'.
-  Apply event-fn to event and put any non-nil result onto the event-chan
-  channel. The result should be a [tag value] pair.
-  The listener returns true or nil if the channel is already closed."
-  [event-chan el type event-fn]
-  (gevents/listen el type (fn [e] (some->> (event-fn e)
-                                           (async/put! event-chan)))))
+(def ^:dynamic *max-cells*
+  "Maximum number of cells in table"
+  100000)
 
-;; TODO: Make HTML components that handle their own local state and
-;; only produce valid application state events
-(defn setup-listeners
-  "Setup listeners for event-chan channel.
-  btn, iframe, rows, cols are functions that return the button and
-  iframe elements or the number of table rows and columns
-  respectively.  If an event would trigger some invalid [tag value]
-  combination then 'error-fn' will be called with an error
-  message. 'error-fn' should return nil or a valid [tag value]."
-  [event-chan error-fn btn rows cols]
-  (let [event-listen (partial listen event-chan)]
-    ;; Click btn to create a table
-    (event-listen (btn)
-                  EventType.CLICK
-                  (fn [_] (let [r (rows)
-                                c (cols)]
-                            (if-not (and (every? pos? [r c]) (<= (* r c) max-cells))
-                              (error-fn (str "Please enter the number of rows and columns for the table\n(up to "
-                                             (.toLocaleString max-cells) " cells).\n"))
-                              [:create-table {:rows r :cols c}]))))))
+;;   "Map of component keys to set of listeners for that component."
+(defonce listener-state (atom init-state))
+
+(defn add-listener
+  "Create and attach a listener to 'el' for events of 'type'.
+  The listener will apply 'event-fn' to a generated event and put any
+  non-nil result onto the 'event-chan' channel. The result of
+  'event-fn' should be a [tag value] pair.  The listener returns true
+  or nil if the channel is already closed.  Records the listener id in
+  a set of ids in the listener-ids map under the key 'component-key'.
+  Returns listener id.
+  If a listener for 'type' on 'el' is already present it will not be
+  changed and its key will be returned."
+  [event-chan component-key el type event-fn]
+  (println :add-listener component-key type)
+  (when-let [id (gevents/listen el type (fn [e] (some->> (event-fn e)
+                                                         (async/put! event-chan))))]
+    (swap! listener-state update-in [component-key] (fnil conj #{}) id)
+    (println :listen :on (.-key id))
+    id))
 
 (defn remove-listeners
-  "Remove listeners."
-  [ok-btn]
-  (gevents/removeAll (ok-btn)))
+  "Remove listeners for 'component-key' or all if no key supplied."
+  ([] (reset! listener-state init-state))
+  ([component-key] (swap! listener-state disj component-key)))
+
+(defn watcher
+  "Removes (by id) any listeners that are no longer needed (listeners
+  in old but not new states)."
+  [_ _ old new]
+  (let [old-ids (reduce into #{} (vals old))
+        new-ids (reduce into #{} (vals new))
+        to-del (set/difference old-ids new-ids)] ; delete anything no longer present
+    (doseq [id to-del]
+      (println :listen :off (.-key id))
+      (gevents/unlistenByKey id))))
