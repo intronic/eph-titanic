@@ -38,34 +38,48 @@
       ;; can use Iframe doc and coords, but inconsistent browser
       ;; support. Instead you need mouseover/mouseout events and more fooling around.
       (event/add-listener ch (com/id this) (-> this com/elt iframe) EventType.MOUSEENTER
-                          (fn [e] (let [xy [(.-clientX e) (.-clientY e)]
-                                        off (dom/get-framed-page-offset-xy
-                                             (-> this com/elt iframe-doc))
-                                        scroll (dom/scroll-xy
-                                                (-> this com/elt iframe-win))]
-                                    [:enter [xy off scroll]])))
+                          (fn [e] (let [[x y] [(.-clientX e) (.-clientY e)]
+                                        [xO yO] (dom/get-framed-page-offset-xy
+                                                 (-> this com/elt iframe-doc))
+                                        [xS yS] (dom/scroll-xy
+                                                 (-> this com/elt iframe-win))]
+                                    ;; Client XY is relative to main document.
+                                    ;; Return pos relative to iframe (including scrolling),
+                                    ;; and relative to main doc.
+                                    [:enter [[(+ (- x xO) xS) (+ (- y yO) yS)] [x y]]])))
       (event/add-listener ch (com/id this) (-> this com/elt iframe) EventType.MOUSELEAVE
                           (fn [e] [:leave []]))
       (let [last-mouse-pos (atom [])]
         (event/add-listener ch (com/id this) (-> this com/elt iframe-doc) EventType.MOUSEMOVE
-                            (fn [e] (let [xy [(.-clientX e) (.-clientY e)]
-                                          off (dom/get-framed-page-offset-xy
-                                               (-> this com/elt iframe-doc))
-                                          scroll (dom/scroll-xy
-                                                  (-> this com/elt iframe-win))]
-                                      ;; capture pos for scroll event
-                                      (reset! last-mouse-pos xy)
-                                      [:move [xy off scroll]])))
+                            (fn [e] (let [[x y] [(.-clientX e) (.-clientY e)]
+                                          [xO yO] (dom/get-framed-page-offset-xy
+                                                   (-> this com/elt iframe-doc))
+                                          [xS yS] (dom/scroll-xy
+                                                   (-> this com/elt iframe-win))]
+                                      ;; Client XY is relative to iframe.
+                                      ;; Return pos relative to iframe (including scrolling),
+                                      ;; and relative to main doc.
+                                      ;; Capture mouse iframe pos for scroll event.
+                                      (reset! last-mouse-pos [x y])
+                                      [:move [[(+ x xS) (+ y yS)] [(+ x xO) (+ y yO)]]])))
         (event/add-listener ch (com/id this) (-> this com/elt iframe-doc) EventType.SCROLL
-                            (fn [e] [:scroll [(.-clientX e) (.-clientY e) @last-mouse-pos]]))))
-    (show! [this] (some-> this com/elt dom/set-visible!))
-    (hide! [this] (some-> this com/elt dom/set-hidden!))
+                            (fn [e] (let [[x y] @last-mouse-pos
+                                          [xS yS] [(.-clientX e) (.-clientY e)]]
+                                      ;; Client XY is scroll distance relative to frame.
+                                      ;; Mouse does not move on scroll, only need the
+                                      ;; mouse and scroll position relative to the iframe.
+                                      [:scroll [(+ x xS) (+ y yS)]])))))
+    (show! [this]
+      (dom/set-visible! (com/elt this)))
+    (show! [this html]
+      (dom/set-innerHTML! (some-> this com/elt iframe-doc .-body) html)
+      (com/show! this))
+    (hide! [this]
+      (some-> this com/elt dom/set-hidden!))
 
     com/IMainIframe
     (create-table! [this {:keys [rows cols]}]
-      (dom/set-innerHTML! (some-> this com/elt dom/first-iframe dom/iframe-doc .-body)
-                          (html/table rows cols))
-      (com/show! this))))
+      (com/show! this (html/table rows cols)))))
 
 (defn table-control
   "Table control component."
@@ -103,7 +117,10 @@
     (id [_] :coords-control)
     (elt [_] (dom/elt "coords"))
     (init! [this ch])
-    (show! [this [x y] html]
+    (show! [this html]
+      (doto (com/elt this)
+        (dom/set-innerHTML! html)))
+    (show! [this html [x y]]
       (doto (com/elt this)
         (dom/set-page-offset! (+ delta x) (+ delta y))
         (dom/set-style! {"position" "fixed", "display" "block"})

@@ -36,17 +36,23 @@
                                 (update-in [:table-update] inc))))
 
     :enter
-    (let [[[x y] [oX oY] [sX sY]] val   ; xy is rel to js/document
-          s (gstring/format "(%d, %d)" (+ (- x oX) sX) (+ (- y oY) sY))]
-      (println tag val :pos [x y] :msg s)
-      (com/show! (:coords-control component-map) [x y] s))
+    (let [[rel-xy xy] val   ; xy is rel to js/document, rel-xy is rel to iframe
+          s (apply gstring/format "(%d, %d)" rel-xy)]
+      (println tag val s)
+      (com/show! (:coords-control component-map) s xy))
 
     :move
-    (let [[[x y] [oX oY] [sX sY]] val
-          pos [(+ x oX) (+ y oY)]
-          s (gstring/format "(%d, %d)" (+ x sX) (+ y sY))]
-      (println tag val :pos pos :msg s)
-      (com/show! (:coords-control component-map) pos s))
+    (let [[rel-xy xy] val
+          s (apply gstring/format "(%d, %d)" rel-xy)]
+      (println tag val s)
+      (com/show! (:coords-control component-map) s xy))
+
+    ;; TODO: fix move/leave/enter etc to handle when scrolling of iframe stops and main doc starts scrolling.
+
+    :scroll
+    (let [s (apply gstring/format "(%d, %d)" val)]
+      (println tag val s)
+      (com/show! (:coords-control component-map) s))
 
     :leave
     (do

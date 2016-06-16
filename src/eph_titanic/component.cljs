@@ -8,8 +8,8 @@
     "Initialize the control with control and log channels 'chan' and 'log-chan'.")
   (id [_] "Return a keyword ID.")
   (elt [_] "Return the element.")
-  (show! [_] [_ [x y] html]
-    "Show the control, optionally setting [x y] coordinates and innerHTML to 'html'.")
+  (show! [_] [_ html] [_ html [x y]]
+    "Show the control, optionally setting innerHTML to 'html' and [x y] coordinates.")
   (hide! [_] "Hide the control."))
 
 (defprotocol IMainIframe
