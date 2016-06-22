@@ -20,7 +20,10 @@
                                         (ui/coords)])))
 
 (def watchers {app-state [:main-watcher (partial state/state-change!
-                                                 {:create-table (partial com/create-table! (ui/main))})]
+                                                 {:create-table (partial com/create-table! (ui/main))
+                                                  :unselect-ids (partial com/unselect-ids! (ui/main))
+                                                  :select-ids (partial com/select-ids! (ui/main))
+                                                  :delete-ids (partial com/delete-ids! (ui/main))})]
                event/listener-state [:listener-watcher event/watcher]})
 
 (defn setup

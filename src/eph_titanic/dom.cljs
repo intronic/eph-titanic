@@ -58,6 +58,22 @@
   [el html]
   (and el (set! (.-innerHTML el) html)))
 
+(defn set-class-by-id!
+  "Set class of all elements id(s) found either from the document root
+  or parent if specified."
+  [doc id-coll class]
+  (doseq [id id-coll]
+    (println :set-class-by-id! id (.-id (gdom/getElementHelper_ doc id)))
+    (if-let [el (gdom/getElementHelper_ doc id)]
+      (set! (.-className el) class))))
+
+(defn delete-by-id!
+  "Delete the 'id-coll' collection of nodes by element id."
+  [doc id-coll]
+  (doseq [id id-coll]
+    (println :removeNode (some->> id (gdom/getElementHelper_ doc) .-id))
+    (some->> id (gdom/getElementHelper_ doc) gdom/removeNode)))
+
 (defn set-visible!
   "Set element visibility style to visible, if not already."
   [el]

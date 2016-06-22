@@ -28,9 +28,8 @@
   (println :add-listener component-key type)
   (when-let [id (gevents/listen el type (fn [e] (some->> (event-fn e)
                                                          (async/put! event-chan))))]
-    (swap! listener-state update-in [component-key] (fnil conj #{}) id)
     (println :listen :on (.-key id))
-    id))
+    (swap! listener-state update-in [component-key] (fnil conj #{}) id)))
 
 (defn remove-listeners
   "Remove listeners for 'component-key' or all if no key supplied."

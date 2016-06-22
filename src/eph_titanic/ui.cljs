@@ -20,7 +20,7 @@
 
 (def ^:const delta 10)                  ; x/y offset to pointer to show coord element
 
-(declare iframe iframe-doc iframe-win setup-iframe-style)
+(declare iframe iframe-doc iframe-win setup-iframe-style cell-and-row-id)
 
 ;; TODO: Make HTML components that handle their own local state and
 ;; only produce valid application state events, like React
@@ -37,7 +37,8 @@
       ;; Install listeners for mouse entering and leaving iframe (js/document coords)
       ;; can use Iframe doc and coords, but inconsistent browser
       ;; support. Instead you need mouseover/mouseout events and more fooling around.
-      (event/add-listener ch (com/id this) (-> this com/elt iframe) EventType.MOUSEENTER
+      (event/add-listener ch (com/id this) (-> this com/elt iframe)
+                          EventType.MOUSEENTER
                           (fn [e] (let [[x y] [(.-clientX e) (.-clientY e)]
                                         [xO yO] (dom/get-framed-page-offset-xy
                                                  (-> this com/elt iframe-doc))
@@ -47,10 +48,12 @@
                                     ;; Return pos relative to iframe (including scrolling),
                                     ;; and relative to main doc.
                                     [:enter [[(+ (- x xO) xS) (+ (- y yO) yS)] [x y]]])))
-      (event/add-listener ch (com/id this) (-> this com/elt iframe) EventType.MOUSELEAVE
+      (event/add-listener ch (com/id this) (-> this com/elt iframe)
+                          EventType.MOUSELEAVE
                           (fn [e] [:leave []]))
       (let [last-mouse-pos (atom [])]
-        (event/add-listener ch (com/id this) (-> this com/elt iframe-doc) EventType.MOUSEMOVE
+        (event/add-listener ch (com/id this) (-> this com/elt iframe-doc)
+                            EventType.MOUSEMOVE
                             (fn [e] (let [[x y] [(.-clientX e) (.-clientY e)]
                                           [xO yO] (dom/get-framed-page-offset-xy
                                                    (-> this com/elt iframe-doc))
@@ -62,13 +65,40 @@
                                       ;; Capture mouse iframe pos for scroll event.
                                       (reset! last-mouse-pos [x y])
                                       [:move [[(+ x xS) (+ y yS)] [(+ x xO) (+ y yO)]]])))
-        (event/add-listener ch (com/id this) (-> this com/elt iframe-doc) EventType.SCROLL
+        (event/add-listener ch (com/id this) (-> this com/elt iframe-doc)
+                            EventType.SCROLL
                             (fn [e] (let [[x y] @last-mouse-pos
                                           [xS yS] [(.-clientX e) (.-clientY e)]]
                                       ;; Client XY is scroll distance relative to frame.
                                       ;; Mouse does not move on scroll, only need the
                                       ;; mouse and scroll position relative to the iframe.
-                                      [:scroll [(+ x xS) (+ y yS)]])))))
+                                      [:scroll [(+ x xS) (+ y yS)]]))))
+
+      ;; Table Cell Click/Double-click/Right-click: pass [cell-id row-id]
+      (event/add-listener ch (com/id this) (some-> this com/elt iframe-doc .-body)
+                          EventType.CLICK
+                          (fn [e] (let [el (.-target e)]
+                                    (if (= "TD" (.-tagName el))
+                                      [:cell-click (cell-and-row-id el)]))))
+      (event/add-listener ch (com/id this) (some-> this com/elt iframe-doc .-body)
+                          EventType.DBLCLICK
+                          (fn [e] (let [el (.-target e)]
+                                    (if (= "TD" (.-tagName el))
+                                      [:cell-double-click (cell-and-row-id el)]))))
+      (event/add-listener ch (com/id this) (some-> this com/elt iframe-doc .-body)
+                          EventType.CONTEXTMENU
+                          (fn [e] (let [el (.-target e)]
+                                    (.preventDefault e)
+                                    (if (= "TD" (.-tagName el))
+                                      [:cell-right-click (cell-and-row-id el)]))))
+
+      ;; Delete or Backspace Key anywhere in the iframe body: pass the key code.
+      (event/add-listener ch (com/id this) (KeyHandler. (some-> this com/elt iframe-doc .-body))
+                          KeyHandler.EventType.KEY
+                          (fn [e] (when-let [k (some-> e .-keyCode #{KeyCodes.BACKSPACE KeyCodes.DELETE})]
+                                    (.preventDefault e) ; stop 'back' behaviour
+                                    [:selection-delete k]))))
+
     (show! [this]
       (dom/set-visible! (com/elt this)))
     (show! [this html]
@@ -79,7 +109,16 @@
 
     com/IMainIframe
     (create-table! [this {:keys [rows cols]}]
-      (com/show! this (html/table rows cols)))))
+      (com/show! this (html/table rows cols)))
+    (select-ids! [this id-coll]
+      (println :select id-coll)
+      (dom/set-class-by-id! (some-> this com/elt iframe-doc) id-coll "sel"))
+    (unselect-ids! [this id-coll]
+      (println :unselect id-coll)
+      (dom/set-class-by-id! (some-> this com/elt iframe-doc) id-coll ""))
+    (delete-ids! [this id-coll]
+      (println :delete id-coll)
+      (dom/delete-by-id! (some-> this com/elt iframe-doc) id-coll))))
 
 (defn table-control
   "Table control component."
@@ -152,6 +191,11 @@
   [el]
   (if-not (first (dom/get-styles el))
     (dom/install-style! *iframe-style* el)))
+
+(defn- cell-and-row-id
+  "Return a vector of the element ID and parent ID (eg. [cell-id row-id])."
+  [el]
+  [(some-> el .-id) (some-> el .-parentElement .-id)])
 
 (defn log
   "Return the log element."

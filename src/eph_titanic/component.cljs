@@ -14,7 +14,10 @@
 
 (defprotocol IMainIframe
   (create-table! [_ table-spec]
-    "Create a table in the 'main iframe' with 'table-spec' map of :rows and :cols."))
+    "Create a table in the 'main iframe' with 'table-spec' map of :rows and :cols.")
+  (select-ids! [_ id-coll] "Show the table row or cell ids in 'id-coll' as 'selected'.")
+  (unselect-ids! [_ id-coll] "Show the table row or cell ids in 'id-coll' as 'unselected'.")
+  (delete-ids! [_ id-coll] "Delete the table row or cell ids in 'id-coll'."))
 
 (defprotocol ITableControl
   (table-size [_]
