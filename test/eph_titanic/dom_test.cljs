@@ -4,9 +4,11 @@
             [goog.dom :as gdom]))
 
 (deftest elt-test
+  (is (= js/HTMLDivElement (type (dom/elt :main))))
   (is (= js/HTMLDivElement (type (dom/elt "main"))))
+  (is (= "main" (.-id (dom/elt :main))))
   (is (= "main" (.-id (dom/elt "main"))))
-  (is (= js/HTMLButtonElement (type (dom/elt "ok")))))
+  (is (= js/HTMLButtonElement (type (dom/elt "table-spec")))))
 
 (deftest value-tests
   (is (= "99" (dom/value "val99")))

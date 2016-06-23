@@ -1,9 +1,10 @@
 (ns eph-titanic.html
   (:require-macros [hiccups.core :as hiccups :refer [html]])
-  (:require [hiccups.runtime :as hiccupsrt])
+  (:require [hiccups.runtime :as hiccupsrt]
+            [goog.string :as gstring])
   (:import [goog.string Unicode]))
 
-(declare row-id cell-id cell-num)
+(declare row-id cell-id cell-num id->num cell-coords)
 
 (defn table
   "Return HTML string for table of rows and cols."
@@ -31,20 +32,20 @@
   [cols row col]
   (+ (* cols row) col))
 
-#_(defn id->num
+(defn id->coord-str
+  "Returns formatted string of row or cell coords if id is a row or
+  cell id respectively. Eg. \"row 1\" or \"(1,0)\"."
+  [cols id]
+  (case (get id 0)
+    "r" (->> id id->num (str "row "))
+    "c" (->> id id->num (cell-coords cols) (apply gstring/format "(%d,%d)"))))
+
+(defn- id->num
   "Row or cell number from id."
   [id]
   (js/parseInt (subs id 1)))
 
-#_(defn cell-coords
+(defn- cell-coords
   "Return [row col] coordinate from cell num in table with cols columns."
   [cols num]
   [(quot num cols) (rem num cols)])
-
-#_(defn id->coord-str
-  "Returns formatted string of row or cell coords if id is a row or
-  cell id respectively. Eg. \"row 1\" or \"(1, 0)\"."
-  [cols id]
-  (case (get id 0)
-    "r" (->> id id->num (str "row "))
-    "c" (->> id id->num (cell-coords cols) (apply gstring/format "(%d, %d)"))))

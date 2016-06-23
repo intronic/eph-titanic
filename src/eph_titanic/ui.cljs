@@ -29,8 +29,8 @@
   []
   (reify
     com/IControl
-    (id [_] :main-control)
-    (elt [_] (dom/elt "main"))
+    (id [_] :main)
+    (elt [this] (-> this com/id dom/elt))
     (init! [this ch]
       ;; Install styles on iframe document head
       (some-> this com/elt iframe-doc .-head setup-iframe-style)
@@ -110,6 +110,7 @@
     com/IMainIframe
     (create-table! [this {:keys [rows cols]}]
       (com/show! this (html/table rows cols)))
+    (id->coord-str [_ cols id] (html/id->coord-str cols id))
     (select-ids! [this id-coll]
       (println :select id-coll)
       (dom/set-class-by-id! (some-> this com/elt iframe-doc) id-coll "sel"))
@@ -120,15 +121,15 @@
       (println :delete id-coll)
       (dom/delete-by-id! (some-> this com/elt iframe-doc) id-coll))))
 
-(defn table-control
-  "Table control component."
+(defn table-spec
+  "Table specification component."
   []
   (let [rows #(dom/value->int "rows")
         cols #(dom/value->int "cols")]
     (reify
       com/IControl
-      (id [_] :table-control)
-      (elt [_] (dom/elt "ok"))
+      (id [_] :table-spec)
+      (elt [this] (-> this com/id dom/elt))
       (init! [this ch]
         ;; Install click listener on button.
         (event/add-listener ch (com/id this) (com/elt this) EventType.CLICK
@@ -153,8 +154,8 @@
   []
   (reify
     com/IControl
-    (id [_] :coords-control)
-    (elt [_] (dom/elt "coords"))
+    (id [_] :coords)
+    (elt [this] (-> this com/id dom/elt))
     (init! [this ch])
     (show! [this html]
       (doto (com/elt this)
@@ -164,10 +165,17 @@
         (dom/set-page-offset! (+ delta x) (+ delta y))
         (dom/set-style! {"position" "fixed", "display" "block"})
         (dom/set-innerHTML! html)))
-    (hide! [this] (dom/set-element-shown! (com/elt this) false))
+    (hide! [this] (dom/set-element-shown! (com/elt this) false))))
 
-    ;;com/ICoords
-    ))
+(defn log
+  "Log ui element."
+  []
+  (reify
+    com/IControl
+    (id [_] :log)
+    (elt [this] (-> this com/id dom/elt))
+    (init! [this _] (some-> this com/elt dom/remove-children!))
+    (show! [this msg] (some-> this com/elt (dom/append-pre! msg)))))
 
 ;;; helpers
 
@@ -196,8 +204,3 @@
   "Return a vector of the element ID and parent ID (eg. [cell-id row-id])."
   [el]
   [(some-> el .-id) (some-> el .-parentElement .-id)])
-
-(defn log
-  "Return the log element."
-  []
-  (dom/elt "log"))

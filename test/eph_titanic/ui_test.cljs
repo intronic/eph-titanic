@@ -30,21 +30,21 @@
   (is (satisfies? com/IControl (ui/main)))
   (is (satisfies? com/IMainIframe (ui/main))))
 
-(deftest table-control-test
-  (is (satisfies? com/IControl (ui/table-control)))
-  (is (satisfies? com/ITableControl (ui/table-control)))
+(deftest table-spec-test
+  (is (satisfies? com/IControl (ui/table-spec)))
+  (is (satisfies? com/ITableControl (ui/table-spec)))
   (with-redefs [dom/value->int #(condp = % "rows" 1 "cols" 2)]
     (is (= {:rows 1 :cols 2}
-           (com/table-size (ui/table-control)))))
+           (com/table-size (ui/table-spec)))))
   (with-redefs [dom/value->int #(condp = % "rows" 1 "cols" 20)
                 ui/*max-cells* 20
                 js/alert identity]
     (is (= {:rows 1 :cols 20}
-           (com/table-size (ui/table-control)))))
+           (com/table-size (ui/table-spec)))))
   (with-redefs [dom/value->int #(condp = % "rows" 1 "cols" 20)
                 ui/*max-cells* 19
                 js/alert identity]
-    (is (string? (com/table-size (ui/table-control))))))
+    (is (string? (com/table-size (ui/table-spec))))))
 
 (deftest coords-test
   (is (satisfies? com/IControl (ui/coords))))

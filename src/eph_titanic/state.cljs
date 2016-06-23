@@ -2,6 +2,7 @@
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [cljs.core.async :as async]
             [clojure.set :as set]
+            [clojure.string :as str]
             [goog.string :as gstring]
             goog.string.format
             [eph-titanic.component :as com]))
@@ -27,7 +28,7 @@
 
 (defn eval-tag
   "Evaluate tag and value, possibly changing application state or 'coord-ctl'."
-  [app-state component-map tag val]
+  [app-state {:keys [coords main]} logger tag val]
   (case tag
     :create-table                      ; val is map of :rows and :cols
     ;; update table dimensions, redraw counter, and undo any selections
@@ -40,57 +41,65 @@
     (let [[rel-xy xy] val
           s (apply gstring/format "(%d, %d)" rel-xy)]
       #_(println tag val s)
-      (com/show! (:coords-control component-map) s xy))
+      (com/show! coords s xy))
 
     :move
     (let [[rel-xy xy] val
           s (apply gstring/format "(%d, %d)" rel-xy)]
       #_(println tag val s)
-      (com/show! (:coords-control component-map) s xy))
+      (com/show! coords s xy))
 
     ;; TODO: fix move/leave/enter etc to handle when scrolling of iframe stops and main doc starts scrolling.
 
     :scroll
     (let [s (apply gstring/format "(%d, %d)" val)]
       #_(println tag val s)
-      (com/show! (:coords-control component-map) s))
+      (com/show! coords s))
 
     :leave
     (do
       #_(println tag val)
-      (com/hide! (:coords-control component-map)))
+      (com/hide! coords))
 
     :cell-click
-    ;; Click toggles the cells current selection status. Any other items are un-selected.
+    ;; A single left-click cancels the selection of any other cells,
+    ;; and toggles the selection of the cell at the mouse pointer.
     (let [[id _] val]                   ; cell id is first element
-      #_(println tag val)
+      (logger :toggle-cell-and-clear
+              (com/id->coord-str main (:cols @app-state) id))
       (swap! app-state update-in [:selected-set] #(if (get % id) #{} #{id})))
 
     :cell-double-click
-    ;; Double-click has same semantics as Click, but for the entire row (by row id).
-    ;; The row selection status is toggled. Any other items are un-selected.
+    ;; A double left­click cancels the selection of any other cells,
+    ;; and selects the entire row at the mouse pointer.
     ;; Don't bother checking if each cell in row has been selected one-by-one.
     ;; Note that FF on Mac (at least) generates 2 events on double-click:
     ;; a CLICK followed by DBLCLICK
     (let [[_ id] val]                   ; row id is second element
       #_(println tag val)
+      (logger :select-row (com/id->coord-str main (:cols @app-state) id))
       (swap! app-state update-in [:selected-set] #(if (get % id) #{} #{id})))
 
     :cell-right-click
-    ;; Right-click toggles the cell's selection state, without changing other selected items.
+    ;; A single right-click toggles the selection of the cell at the
+    ;; mouse pointer, and preserves selection of any other cells.
     ;; Don't bother check if the cell is in a row added as a single row.
     ;; Block the context menu popup.
     ;; TODO: also deal with contextmenu keyboard shortcut
     (let [[id _] val]                   ; cell id is first element
       #_(println tag val)
+      (logger :toggle-cell-and-preserve (com/id->coord-str main (:cols @app-state) id))
       (swap! app-state update-in [:selected-set]
              #(if (get % id) (disj % id) (conj (or % #{}) id))))
 
     :selection-delete
     ;; Delete any selected cells on BACKSPACE or DELETE key
     (do
-      (println tag val)
       ;; set selected-set to nil to trigger delete
+      (logger :delete
+              (str/join ", "
+                        (map (partial com/id->coord-str main (:cols @app-state))
+                             (:selected-set @app-state))))
       (swap! app-state assoc-in [:selected-set] nil))
 
     :default-ignore))
@@ -100,7 +109,7 @@
   to apply to new table dimensions when they change are to be
   re-drawn. 'unselect-ids' and 'select-ids' are the functions to be
   called with the collection of cells to be unselected and selected.
-  'old' and 'new' are old and new states respectively."
+ 'old' and 'new' are old and new states respectively."
   [{:keys [create-table unselect-ids select-ids delete-ids]} _ _ old new]
   ;; if rows/cols or update has changed, redo the table
   (let [table (select-keys new [:rows :cols :table-update])]
@@ -118,12 +127,12 @@
             (select-ids (set/difference new-sel old-sel))))))))
 
 (defn start-event-loop
-  "Read a [tag value] pair off 'chan', evaluate the message possibly
-  updating the app-state, and loop. Event loop will terminate if chan
+  "Read a [tag value] pair off channel 'ch', evaluate the message possibly
+  updating the app-state, and loop. Event loop will terminate if channel
   is closed."
-  [app-state component-map chan]
-  (go-loop [[tag val :as msg] (async/<! chan)]
+  [app-state component-map logger ch]
+  (go-loop [[tag val :as msg] (async/<! ch)]
     (when msg
       #_(println :loop tag val)
-      (eval-tag app-state component-map tag val)
-      (recur (async/<! chan)))))
+      (eval-tag app-state component-map logger tag val)
+      (recur (async/<! ch)))))

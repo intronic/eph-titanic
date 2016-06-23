@@ -9,7 +9,7 @@
 (deftest listener-state
   (is (= {} event/init-state))
   ;; after setup there are two controls with listeners
-  (is (= {:main-control 8 :table-control 1}
+  (is (= {:main 8 :table-spec 1}
          (into {} (map (fn [[k v]] [k (count v)]) @event/listener-state)))))
 
 #_(deftest listen-test

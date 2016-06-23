@@ -15,7 +15,7 @@
 (defn elt
   "Get dom element id under main document"
   [id]
-  (gdom/getElement id))
+  (gdom/getElement (name id)))
 
 (defn value
   "Value of dom element 'id'."
@@ -45,18 +45,27 @@
 (defn first-iframe
   "Find first iframe under element 'el'"
   [el]
-  (some->> (get-elements-by-tag el "iframe") first))
+  (some-> el (get-elements-by-tag "iframe") first))
 
 (defn set-style!
   "Set style of element to properties in 'prop-map'."
   [el prop-map]
-  (and el (doseq [[prop val] prop-map]
-            (aset el "style" prop val))))
+  (if el (doseq [[prop val] prop-map] (aset el "style" prop val))))
 
 (defn set-innerHTML!
   "Set innerHTML of element to 'html'."
   [el html]
-  (and el (set! (.-innerHTML el) html)))
+  (if el (set! (.-innerHTML el) html)))
+
+(defn remove-children!
+  "Remove children from element 'el'."
+  [el]
+  (some-> el gdom/removeChildren))
+
+(defn append-pre!
+  "Append 'msg' in <pre> tag as child el."
+  [el msg]
+  (some-> el (gdom/appendChild (gdom/createDom "pre", "", msg))))
 
 (defn set-class-by-id!
   "Set class of all elements id(s) found either from the document root

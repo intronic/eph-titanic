@@ -4,8 +4,7 @@
 ;; IMainIframe to control the main iframe table rendering.
 
 (defprotocol IControl
-  (init! [_ chan] [_ chan log-chan]
-    "Initialize the control with control and log channels 'chan' and 'log-chan'.")
+  (init! [_] [_ event-chan] "Initialize the control with optional event channel.")
   (id [_] "Return a keyword ID.")
   (elt [_] "Return the element.")
   (show! [_] [_ html] [_ html [x y]]
@@ -15,6 +14,8 @@
 (defprotocol IMainIframe
   (create-table! [_ table-spec]
     "Create a table in the 'main iframe' with 'table-spec' map of :rows and :cols.")
+  (id->coord-str [_ cols id] "Convert table cell or row id into a coordinate string
+  in the format \"(x, y)\" for a cell or \"row n\" for a row nummer 'n'.")
   (select-ids! [_ id-coll] "Show the table row or cell ids in 'id-coll' as 'selected'.")
   (unselect-ids! [_ id-coll] "Show the table row or cell ids in 'id-coll' as 'unselected'.")
   (delete-ids! [_ id-coll] "Delete the table row or cell ids in 'id-coll'."))
@@ -23,6 +24,3 @@
   (table-size [_]
     "Return the table-size as map with keys :rows :cols if the size is
     valid, otherwise show a message and return nil."))
-
-(defprotocol ICoords
-  (move [_] ""))
