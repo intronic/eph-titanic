@@ -37,42 +37,53 @@
       ;; Install listeners for mouse entering and leaving iframe (js/document coords)
       ;; can use Iframe doc and coords, but inconsistent browser
       ;; support. Instead you need mouseover/mouseout events and more fooling around.
-      (event/add-listener ch (com/id this) (-> this com/elt iframe)
-                          EventType.MOUSEENTER
-                          (fn [e] (let [[x y] [(.-clientX e) (.-clientY e)]
-                                        [xO yO] (dom/get-framed-page-offset-xy
-                                                 (-> this com/elt iframe-doc))
-                                        [xS yS] (dom/scroll-xy
-                                                 (-> this com/elt iframe-win))]
-                                    ;; Client XY is relative to main document.
-                                    ;; Return pos relative to iframe (including scrolling),
-                                    ;; and relative to main doc.
-                                    [:enter [[(+ (- x xO) xS) (+ (- y yO) yS)] [x y]]])))
-      (event/add-listener ch (com/id this) (-> this com/elt iframe)
-                          EventType.MOUSELEAVE
-                          (fn [e] [:leave []]))
-      (let [last-mouse-pos (atom [])]
+      (let [last-mouse-pos (atom nil)]
+        (event/add-listener ch (com/id this) (-> this com/elt iframe)
+                            EventType.MOUSELEAVE
+                            (fn [e]
+                              (reset! last-mouse-pos nil)
+                              [:leave]))
+        (event/add-listener ch (com/id this) (-> this com/elt iframe)
+                            EventType.MOUSEENTER
+                            (fn [e]
+                              (let [[xW yW] [(.-clientX e) (.-clientY e)]
+                                    [xOI yOI] (dom/get-framed-page-offset-xy (-> this com/elt iframe-doc))
+                                    [xI yI] [(- xW xOI) (- yW yOI)]
+                                    [xSW ySW] (dom/scroll-xy js/window)
+                                    [xSI ySI] (dom/scroll-xy (-> this com/elt iframe-win))
+                                    ifr-pos [(+ xI xSI) (+ yI ySI)]
+                                    win-pos [(+ xW xSW) (+ yW ySW)]]
+                                ;; Client XY is relative to main window (without scroll)
+                                ;; Return pos relative to iframe (including iframe scrolling),
+                                ;; and relative to main win including win scrolling.
+                                ;; Capture mouse iframe pos for scroll event.
+                                (reset! last-mouse-pos [xI yI])
+                                [:enter [ifr-pos win-pos]])))
         (event/add-listener ch (com/id this) (-> this com/elt iframe-doc)
                             EventType.MOUSEMOVE
-                            (fn [e] (let [[x y] [(.-clientX e) (.-clientY e)]
-                                          [xO yO] (dom/get-framed-page-offset-xy
-                                                   (-> this com/elt iframe-doc))
-                                          [xS yS] (dom/scroll-xy
-                                                   (-> this com/elt iframe-win))]
-                                      ;; Client XY is relative to iframe.
-                                      ;; Return pos relative to iframe (including scrolling),
-                                      ;; and relative to main doc.
-                                      ;; Capture mouse iframe pos for scroll event.
-                                      (reset! last-mouse-pos [x y])
-                                      [:move [[(+ x xS) (+ y yS)] [(+ x xO) (+ y yO)]]])))
+                            (fn [e]
+                              (let [[xI yI] [(.-clientX e) (.-clientY e)]
+                                    [xOI yOI] (dom/get-framed-page-offset-xy (-> this com/elt iframe-doc))
+                                    [xW yW] [(+ xI xOI ) (+ yI yOI)]
+                                    [xSW ySW] (dom/scroll-xy js/window)
+                                    [xSI ySI] (dom/scroll-xy (-> this com/elt iframe-win))
+                                    ifr-pos [(+ xI xSI) (+ yI ySI)]
+                                    win-pos [(+ xW xSW) (+ yW ySW)]]
+                                ;; Client XY is relative to iframe.
+                                ;; Return pos relative to iframe (including scrolling),
+                                ;; and relative to main doc.
+                                ;; Capture mouse iframe pos for scroll event.
+                                (reset! last-mouse-pos [xI yI])
+                                [:move [ifr-pos win-pos]])))
         (event/add-listener ch (com/id this) (-> this com/elt iframe-doc)
                             EventType.SCROLL
-                            (fn [e] (let [[x y] @last-mouse-pos
-                                          [xS yS] [(.-clientX e) (.-clientY e)]]
-                                      ;; Client XY is scroll distance relative to frame.
-                                      ;; Mouse does not move on scroll, only need the
-                                      ;; mouse and scroll position relative to the iframe.
-                                      [:scroll [(+ x xS) (+ y yS)]]))))
+                            (fn [e] (if-let [[x y] @last-mouse-pos]
+                                      (let [;;[xS yS] [(.-clientX e) (.-clientY e)] ; doesnt work on chrome
+                                           [xS yS] (dom/scroll-xy (-> this com/elt iframe-win))
+                                           ifr-pos [(+ x xS) (+ y yS)]]
+                                       ;; The mouse does not move relative to the main window on scroll,
+                                       ;; only the iframe coordinate changes.
+                                       [:scroll ifr-pos])))))
 
       ;; Table Cell Click/Double-click/Right-click: pass [cell-id row-id]
       (event/add-listener ch (com/id this) (some-> this com/elt iframe-doc .-body)

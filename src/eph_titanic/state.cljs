@@ -29,6 +29,7 @@
 (defn eval-tag
   "Evaluate tag and value, possibly changing application state or 'coord-ctl'."
   [app-state {:keys [coords main]} logger tag val]
+  #_(println :eval tag val)
   (case tag
     :create-table                      ; val is map of :rows and :cols
     ;; update table dimensions, redraw counter, and undo any selections
@@ -36,29 +37,25 @@
                               (merge {:selected-set nil} val)
                               (update-in [:table-update] inc)))
 
-    ;; xy is rel to js/document, rel-xy is rel to iframe
+    ;; xy is rel to js/document, i-xy is rel to iframe
     :enter
-    (let [[rel-xy xy] val
-          s (apply gstring/format "(%d, %d)" rel-xy)]
-      #_(println tag val s)
+    (let [[i-xy xy] val
+          s (apply gstring/format "(%d, %d)" i-xy)]
       (com/show! coords s xy))
 
     :move
-    (let [[rel-xy xy] val
-          s (apply gstring/format "(%d, %d)" rel-xy)]
-      #_(println tag val s)
+    (let [[i-xy xy] val
+          s (apply gstring/format "(%d, %d)" i-xy)]
       (com/show! coords s xy))
 
     ;; TODO: fix move/leave/enter etc to handle when scrolling of iframe stops and main doc starts scrolling.
 
     :scroll
     (let [s (apply gstring/format "(%d, %d)" val)]
-      #_(println tag val s)
       (com/show! coords s))
 
     :leave
     (do
-      #_(println tag val)
       (com/hide! coords))
 
     :cell-click
@@ -76,7 +73,6 @@
     ;; Note that FF on Mac (at least) generates 2 events on double-click:
     ;; a CLICK followed by DBLCLICK
     (let [[_ id] val]                   ; row id is second element
-      #_(println tag val)
       (logger :select-row (com/id->coord-str main (:cols @app-state) id))
       (swap! app-state update-in [:selected-set] #(if (get % id) #{} #{id})))
 
@@ -87,7 +83,6 @@
     ;; Block the context menu popup.
     ;; TODO: also deal with contextmenu keyboard shortcut
     (let [[id _] val]                   ; cell id is first element
-      #_(println tag val)
       (logger :toggle-cell-and-preserve (com/id->coord-str main (:cols @app-state) id))
       (swap! app-state update-in [:selected-set]
              #(if (get % id) (disj % id) (conj (or % #{}) id))))
