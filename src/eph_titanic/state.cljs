@@ -33,9 +33,10 @@
   (case tag
     :create-table                      ; val is map of :rows and :cols
     ;; update table dimensions, redraw counter, and undo any selections
-    (swap! app-state #(some-> %
-                              (merge {:selected-set nil} val)
-                              (update-in [:table-update] inc)))
+    (do (swap! app-state #(some-> %
+                                  (merge {:selected-set nil} val)
+                                  (update-in [:table-update] inc)))
+        (logger :init nil))
 
     ;; xy is rel to js/document, i-xy is rel to iframe
     :enter
@@ -92,9 +93,8 @@
     (do
       ;; set selected-set to nil to trigger delete
       (logger :delete
-              (str/join ", "
-                        (map (partial com/id->coord-str main (:cols @app-state))
-                             (:selected-set @app-state))))
+              (str/join " " (map (partial com/id->coord-str main (:cols @app-state))
+                                 (:selected-set @app-state))))
       (swap! app-state assoc-in [:selected-set] nil))
 
     :default-ignore))

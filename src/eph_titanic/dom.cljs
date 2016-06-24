@@ -50,7 +50,7 @@
 (defn set-style!
   "Set style of element to properties in 'prop-map'."
   [el prop-map]
-  (if el (doseq [[prop val] prop-map] (aset el "style" prop val))))
+  (if el (doseq [[prop val] prop-map] (aset el "style" (name prop) val))))
 
 (defn set-innerHTML!
   "Set innerHTML of element to 'html'."
@@ -66,6 +66,11 @@
   "Append 'msg' in <pre> tag as child el."
   [el msg]
   (some-> el (gdom/appendChild (gdom/createDom "pre", "", msg))))
+
+(defn append-text!
+  "Append 'msg' as a div child el."
+  [el msg]
+  (some-> el (gdom/appendChild (gdom/createDom "div" "" msg))))
 
 (defn set-class-by-id!
   "Set class of all elements id(s) found either from the document root

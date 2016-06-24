@@ -185,8 +185,9 @@
     com/IControl
     (id [_] :log)
     (elt [this] (-> this com/id dom/elt))
-    (init! [this _] (some-> this com/elt dom/remove-children!))
-    (show! [this msg] (some-> this com/elt (dom/append-pre! msg)))))
+    (init! [this] (some-> this com/elt dom/remove-children!))
+    (init! [this _] (com/init! this))
+    (show! [this msg] (some-> this com/elt (dom/append-text! msg)))))
 
 ;;; helpers
 
