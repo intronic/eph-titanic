@@ -9,47 +9,36 @@
 
 ;; Application State:
 ;;   The initial application state consists of a map of:
-;; :table-update - The number of times the table has been updated.
-;;                 On a table update event, regardless of whether the
-;;                 dimensions change, any selected cells or rows
-;;                 should be un-selected.
 ;; :rows         - The number of rows in the table (should be >0).
-;;                 If the number of rows changes, the table should be redrawn.
+;;                 If this changes, the state should be reset and the table redrawn.
 ;; :cols         - The number of columns in the table (should be >0).
-;;                 If the number of columns changes, the table should be redrawn.
+;;                 If this changes, the state should be reset and the table redrawn.
+;; :table-update - The number of times the table has been updated.
+;;                 Incrementing this will triggers a reset of the state and redrawing the table.
 ;; :selected-set - The set of IDs of the currently selected cells or rows.
-;;               - Set this to nil (without changing the table state
-;;                 above) to delete the previously selected cells or rows.
+;;               - Set this to nil to delete the previously selected cells or rows.
 (def ^:const init-state
-  {:table-update 0
-   :rows nil
+  {:rows nil
    :cols nil
+   :table-update 0
    :selected-set nil})
 
 (defn eval-tag
-  "Evaluate tag and value, possibly changing application state or 'coord-ctl'."
+  "Evaluate tag and value, possibly updating app-state or 'coord' ui control."
   [app-state {:keys [coords main]} logger tag val]
-  #_(println :eval tag val)
   (case tag
     :create-table                      ; val is map of :rows and :cols
     ;; update table dimensions, redraw counter, and undo any selections
-    (do (swap! app-state #(some-> %
+    (do (logger :init nil)
+        (swap! app-state #(some-> %
                                   (merge {:selected-set nil} val)
-                                  (update-in [:table-update] inc)))
-        (logger :init nil))
+                                  (update-in [:table-update] inc))))
 
     ;; xy is rel to js/document, i-xy is rel to iframe
-    :enter
+    (:enter :move)
     (let [[i-xy xy] val
           s (apply gstring/format "(%d, %d)" i-xy)]
       (com/show! coords s xy))
-
-    :move
-    (let [[i-xy xy] val
-          s (apply gstring/format "(%d, %d)" i-xy)]
-      (com/show! coords s xy))
-
-    ;; TODO: fix move/leave/enter etc to handle when scrolling of iframe stops and main doc starts scrolling.
 
     :scroll
     (let [s (apply gstring/format "(%d, %d)" val)]
@@ -128,6 +117,5 @@
   [app-state component-map logger ch]
   (go-loop [[tag val :as msg] (async/<! ch)]
     (when msg
-      #_(println :loop tag val)
       (eval-tag app-state component-map logger tag val)
       (recur (async/<! ch)))))

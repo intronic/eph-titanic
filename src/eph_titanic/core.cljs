@@ -32,7 +32,6 @@
   []
   (let [event-chan (async/chan)
         log-chan (async/chan)]
-    (println "set up...")
     ;; set up controls/add watchers/start event loop
     (doseq [c (vals components)] (com/init! c event-chan))
     (doseq [[r [k f]] watchers] (add-watch r k f))

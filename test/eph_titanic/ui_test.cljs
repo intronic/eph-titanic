@@ -7,8 +7,8 @@
   (:import [goog.dom DomHelper]))
 
 (deftest defs-test
-  (is (string? ui/*iframe-style*))
-  (is (number? ui/*max-cells*))
+  (is (string? ui/iframe-style))
+  (is (number? ui/max-cells))
   (is (number? ui/delta)))
 
 (deftest ui-helpers-test
@@ -21,7 +21,7 @@
   (is (-> (ui/main) com/elt ui/iframe-doc))
   (is (-> (ui/main) com/elt ui/iframe-win))
   (is (= 1 (count (dom/get-styles (-> (ui/main) com/elt ui/iframe-doc)))))
-  (is (= ui/*iframe-style*
+  (is (= ui/iframe-style
          (.-innerHTML (first (dom/get-styles (-> (ui/main) com/elt ui/iframe-doc))))))
   (is (= 1 (do (ui/setup-iframe-style (-> (ui/main) com/elt ui/iframe-doc))
                (count (dom/get-styles (-> (ui/main) com/elt ui/iframe-doc)))))))
@@ -32,17 +32,21 @@
 
 (deftest table-spec-test
   (is (satisfies? com/IControl (ui/table-spec)))
-  (is (satisfies? com/ITableControl (ui/table-spec)))
+  (is (satisfies? com/ITableSpec (ui/table-spec)))
+  (is (= {:rows 1 :cols 2} (ui/valid-spec 1 2)))
+  (with-redefs [ui/max-cells 19
+                js/alert (constantly :alert)]
+    (is (= :alert (ui/valid-spec 1 20))))
   (with-redefs [dom/value->int #(condp = % "rows" 1 "cols" 2)]
     (is (= {:rows 1 :cols 2}
            (com/table-size (ui/table-spec)))))
   (with-redefs [dom/value->int #(condp = % "rows" 1 "cols" 20)
-                ui/*max-cells* 20
+                ui/max-cells 20
                 js/alert identity]
     (is (= {:rows 1 :cols 20}
            (com/table-size (ui/table-spec)))))
   (with-redefs [dom/value->int #(condp = % "rows" 1 "cols" 20)
-                ui/*max-cells* 19
+                ui/max-cells 19
                 js/alert identity]
     (is (string? (com/table-size (ui/table-spec))))))
 

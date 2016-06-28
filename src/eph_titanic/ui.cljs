@@ -8,19 +8,19 @@
 
 ;;; Web Browser UI controls.
 
-(def ^:dynamic *iframe-style*
+(def ^:dynamic ^:export iframe-style
   "Document style for iframe."
   "table { border: 1px solid black; }
   td { border: 1px solid black; width: 12pt; }
   td.sel, tr.sel { background-color: #FF3300; }")
 
-(def ^:dynamic *max-cells*
+(def ^:dynamic ^:export max-cells
   "Maximum number of cells in table"
   100000)
 
 (def ^:const delta 10)                  ; x/y offset to pointer to show coord element
 
-(declare iframe iframe-doc iframe-win setup-iframe-style cell-and-row-id)
+(declare iframe iframe-doc iframe-win setup-iframe-style cell-and-row-id valid-spec)
 
 ;; TODO: Make HTML components that handle their own local state and
 ;; only produce valid application state events, like React
@@ -136,7 +136,8 @@
   "Table specification component."
   []
   (let [rows #(dom/value->int "rows")
-        cols #(dom/value->int "cols")]
+        cols #(dom/value->int "cols")
+        ]
     (reify
       com/IControl
       (id [_] :table-spec)
@@ -144,21 +145,17 @@
       (init! [this ch]
         ;; Install click listener on button.
         (event/add-listener ch (com/id this) (com/elt this) EventType.CLICK
-                            (fn [e] (let [r (rows)
-                                          c (cols)]
-                                      (if-not (and (every? pos? [r c]) (<= (* r c) *max-cells*))
-                                        (js/alert (str "Please enter the number of rows and columns for the table (up to "
-                                                       (.toLocaleString *max-cells*) " cells).\n"))
-                                        [:create-table {:rows r :cols c}])))))
+                            (fn [e] (if-let [s (com/table-size this)] [:create-table s]))))
 
-      com/ITableControl
-      (table-size [_]
-        (let [r (rows)
-              c (cols)]
-          (if-not (and (every? pos? [r c]) (<= (* r c) *max-cells*))
-            (js/alert (str "Please enter the number of rows and columns for the table\n(up to "
-                           (.toLocaleString *max-cells*) " cells).\n"))
-            {:rows r :cols c}))))))
+      com/ITableSpec
+      (table-size [_] (valid-spec (rows) (cols))))))
+
+(defn- valid-spec
+  [r c]
+  (if (and (every? pos? [r c]) (<= (* r c) max-cells))
+    {:rows r :cols c}
+    (js/alert (str "Please enter the number of rows and columns for the table (up to "
+                   (.toLocaleString max-cells) " cells).\n"))))
 
 (defn coords
   "Coords ui element."
@@ -210,7 +207,7 @@
   "Add styles on element 'el' if none already added."
   [el]
   (if-not (first (dom/get-styles el))
-    (dom/install-style! *iframe-style* el)))
+    (dom/install-style! iframe-style el)))
 
 (defn- cell-and-row-id
   "Return a vector of the element ID and parent ID (eg. [cell-id row-id])."
