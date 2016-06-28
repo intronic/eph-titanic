@@ -21,13 +21,16 @@ Provide a basic cell selection approach for the table. This will include:
 
 ### Stage 5.
 Pressing the delete key should delete all cells that are considered 'selected'. This will create an uneven table, which is fine.
-Stage 6.
+
+### Stage 6.
 The logging area (#log) needs to be filled with logging information of the operations performed. The operations that need to be logged are:
 a) Toggling selection of a cell. Specify the cell grid position e.g. (0, 1) for row 0, column 1
 b) Clearing selection of all cells.
-c) Selecting an entire row. Specify the index of the row selected
-e.g. row 1
+c) Selecting an entire row. Specify the index of the row selected e.g. row 1
 d) Deleting the selected cells.
+
+### Stage 7.
+Relax.
 
 ## Setup
 
